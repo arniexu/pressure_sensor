@@ -1,6 +1,15 @@
 #include "f2f_modbus.h"
 #include "main.h"
 
+extern RNG_HandleTypeDef hrng;
+
+extern SPI_HandleTypeDef hspi1;
+
+extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
+extern UART_HandleTypeDef huart3;
+
+
 // leave un-implemented
 void _fbs_log(fbs_log_level level, fbs_log_module module, const char *file, int line, char *fmt, ...)
 {
@@ -18,12 +27,12 @@ void _fbs_log(fbs_log_level level, fbs_log_module module, const char *file, int 
     return;
 }
 
-static int read_str_from_flash(unsigned char *buffer, unsigned char size, unsigned int addr)
+static int read_str_from_flash(char *buffer, unsigned char size, unsigned int addr)
 {
     if(size < 64 || !buffer)
         return -1;
     for (unsigned int i = 0; i<MAX_MODBUS_PARAM_LENS/8; i++)
-        memcpy(buffer + i*8, (uint64_t *)address + i, 8);
+        memcpy(buffer + i*8, (uint64_t *)addr + i, 8);
     return 0;
 }
 
@@ -33,12 +42,12 @@ const char *fbs_cfg_get(const char *key, fbs_cfg_type_e type)
     //type在单片机上没有什么意义
     //key是需要获得配置名称
     //return一个char*，外面的程序再根据需要进行转换
-    unsigned char *buffer = malloc(MAX_MODBUS_PARAM_LENS);
+    char *buffer = malloc(MAX_MODBUS_PARAM_LENS);
     if(!buffer)
         return NULL;
     if (strcmp(key, "modbus:tty_dev") == 0)
     {
-        return read_str_from_flash(buffer, 64, MODBUS_REG_BASE_ADDR+MODBUS_REG_TTY_DEV_OFFSET) == 0 ? buffer : NULL;
+        return (read_str_from_flash(buffer, 64, MODBUS_REG_BASE_ADDR+MODBUS_REG_TTY_DEV_OFFSET) == 0 ? buffer : NULL);
     }
     else if(strcmp(key, "modbus:tty_speed") == 0)
     {
@@ -58,21 +67,21 @@ const char *fbs_cfg_get(const char *key, fbs_cfg_type_e type)
     }
     else if(strcmp(key, "modbus:tty_slaveid") == 0)
     {
-        return read_str_from_flash(buffer, 64, MODBUS_REG_BASE_ADDR+MODBUS_REG_TTY_SLAVEID_OFFSET) == 0 ? buffer: NULL;
+        return read_str_from_flash(buffer, 64, MODBUS_REG_BASE_ADDR+MODBUS_REG_SLAVEID_OFFSET) == 0 ? buffer: NULL;
     }
     return NULL;
 }
 
 // 假设字符串最长64个字节，占据8个double word
-static int write_str_to_flash(unsigned char *str, unsigned int address)
+static int write_str_to_flash(const char *str, unsigned int address)
 {
-    unsigned char buffer[MAX_MODBUS_PARAM_LENS] = {0};
+    char buffer[MAX_MODBUS_PARAM_LENS] = {0};
     if(str && strlen(str) > MAX_MODBUS_PARAM_LENS - 1)
         return -1;
     strcpy(buffer, str);
-    for (unsigned int i = 0; i<MAX_MODBUS_PARAM_LENS/8; i++, buffer += 8, address += 8)
+    for (char i = 0,*ptr = buffer; i<MAX_MODBUS_PARAM_LENS/8; i++, ptr += 8, address += 8)
     {
-        if (HAL_OK != FLASH_Program_DoubleWord(*(unsigned int*)buffer, address))
+        if (HAL_OK != HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, address, *(uint64_t*)ptr))
             return -1;
     }
     return 0;
@@ -109,7 +118,7 @@ int fbs_cfg_set(const char *key, const char *value, fbs_cfg_type_e type)
     }
     else if(strcmp(key, "modbus:tty_slaveid") == 0)
     {
-        return write_str_to_flash(value, MODBUS_REG_BASE_ADDR+MODBUS_REG_TTY_SLAVEID_OFFSET) == 0 ? FBS_SUCC : FBS_EXCEED_PARAM;
+        return write_str_to_flash(value, MODBUS_REG_BASE_ADDR+MODBUS_REG_SLAVEID_OFFSET) == 0 ? FBS_SUCC : FBS_EXCEED_PARAM;
     }
     else
         return FBS_EXCEED_PARAM;
@@ -123,11 +132,11 @@ int fbs_cfg_save(fbs_cfg_type_e type)
     return FBS_SUCC;
 }
 
-int fbs_rand()
+int fbs_rand(void)
 {
     //获得一个随机数，必须在单片机实现
     uint32_t randomNumber = 0;
-    if (HAL_RNG_GenerateRandomNumber(&hRNG, &randomNumber) == HAL_OK)
+    if (HAL_RNG_GenerateRandomNumber(&hrng, &randomNumber) == HAL_OK)
     {
         // 成功生成随机数，在这里可以使用randomNumber变量
     }
@@ -138,13 +147,13 @@ int fbs_rand()
     return randomNumber;
 }
 
-uint32_t fbs_uid_get()
+uint32_t fbs_uid_get(void)
 {
     //获得本设备的出厂唯一ID，必须实现
-	unsigned char buffer[MAX_MODBUS_PARAM_LENS] = {0};
-    if( 0 == read_str_from_flash(buffer, MAX_MODBUS_PARAM_LENS, MODBUS_REG_BASE_ADDR+MODBUS_REG_TTY_SLAVEID_OFFSET))
+		char buffer[MAX_MODBUS_PARAM_LENS] = {0};
+    if( 0 == read_str_from_flash(buffer, MAX_MODBUS_PARAM_LENS, MODBUS_REG_BASE_ADDR+MODBUS_REG_SLAVEID_OFFSET))
     {
-        unsigned int val = strtok(buffer, NULL, 16);
+        unsigned int val = strtol(buffer, NULL, 16);
         return val;
     }
     else // 如果读取失败了呢？ 
@@ -163,7 +172,6 @@ void fbs_time_sync_pts(uint64_t pts)
 int fbs_serial_open(const char *dev, int speed, int databits, char parity, int stopbits)
 {
     //打开串口，务必实现
-    //串口始终打开的，直接返回文件描述符
     return FD_MODBUS_USART;
 }
 
@@ -188,6 +196,39 @@ float swap_float_endian(float data)
  
     return dest.f;
 }
+
+uint32_t ntohl(uint32_t net_num) {
+    unsigned int host_num = 0;
+    unsigned char *net_ptr = (unsigned char *)&net_num;
+    unsigned char *host_ptr = (unsigned char *)&host_num;
+
+    host_ptr[0] = net_ptr[3];
+    host_ptr[1] = net_ptr[2];
+    host_ptr[2] = net_ptr[1];
+    host_ptr[3] = net_ptr[0];
+
+    return host_num;
+}
+
+uint32_t htonl(uint32_t host_num) {
+    return ntohl(host_num);
+}
+
+uint16_t ntohs(uint16_t net_num) {
+    unsigned int host_num = 0;
+    unsigned char *net_ptr = (unsigned char *)&net_num;
+    unsigned char *host_ptr = (unsigned char *)&host_num;
+
+    host_ptr[0] = net_ptr[1];
+    host_ptr[1] = net_ptr[0];
+
+    return host_num;
+}
+
+uint16_t htons(uint16_t host_num) {
+    return ntohl(host_num);
+}
+
 uint64_t htonll(uint64_t val)
 {
     return (((uint64_t) htonl(val)) << 32) + htonl(val >> 32);

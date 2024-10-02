@@ -1,5 +1,15 @@
 #include "fmb_tty.h"
 #include "main.h"
+
+extern RNG_HandleTypeDef hrng;
+
+extern SPI_HandleTypeDef hspi1;
+
+extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
+extern UART_HandleTypeDef huart3;
+
+
 static uint16_t calcrc(uint8_t *buf, int len)
 {
     const uint16_t table[256] = {
@@ -45,45 +55,47 @@ static void *__fmb_tty_server_thread(void *arg)
 {
 	// fd_set set; 没有poll-select机制
 	uint16_t crc = 0;
-    fmb_transport_type_e cb_type;
-	int nfound = 0;
-    // int maxfd; 没有poll-select机制
-	ssize_t len = 0, read_len = 0;
-	uint8_t *buf = NULL, tty_buf[FMB_TTY_BUF_LEN], radio_buf[RADIO_MTU + 2] = {0};
+	fmb_transport_type_e cb_type;
+	// int nfound = 0;
+	// int maxfd; 没有poll-select机制
+	uint32_t len = 0, read_len = 0;
+	uint8_t *buf = NULL, tty_buf[FMB_TTY_BUF_LEN];
+	// radio_buf[RADIO_MTU + 2] = {0};
 	// struct timeval tv; stm32有自己的超时机制
-    fmb_pdu_req_t *pdu_req;
-    __suseconds_t tv_usec;
-    modbus_rtu_pack_t *rtu;
-    bool_t recved_data = FALSE;
-    // fmb_tty_t *tty = (fmb_tty_t*)arg;
+	fmb_pdu_req_t *pdu_req;
+	uint32_t tv_usec;
+	modbus_rtu_pack_t *rtu;
+	bool_t recved_data = FALSE;
+	fmb_tty_t *tty = (fmb_tty_t*)arg;
 
     tv_usec = fmb_tty_get_interval();
 	while(tty->running)
 	{
-        //下面是标准的linux中的select机制，非阻塞等待fd的动作。
-        //如果stm32上没有相应的函数，下面标注了哪些地方是具体的实现体
+		//下面是标准的linux中的select机制，非阻塞等待fd的动作。
+		//如果stm32上没有相应的函数，下面标注了哪些地方是具体的实现体
 		// FD_ZERO(&set);
-        if(tty->tty_fd)
-		    FD_SET(tty->tty_fd, &set);
-        // if(tty->radio_fd)
+		// if(tty->tty_fd)
+		// 	FD_SET(tty->tty_fd, &set);
+		// if(tty->radio_fd)
 		//     FD_SET(tty->radio_fd, &set);
 
-        recved_data = FALSE;
+		recved_data = FALSE;
 		// tv.tv_sec = 0;
 		// tv.tv_usec = tv_usec;
 		// maxfd = tty->tty_fd > tty->radio_fd ? tty->tty_fd : tty->radio_fd;
-		if((nfound = select(maxfd + 1, &set, (fd_set *)0, (fd_set *)0, tv.tv_sec || tv.tv_usec ? &tv : NULL)) < 0)
-		{
-			return NULL;
-		}
-		else if(nfound == 0)
-		{
-            tty->tty_busy = FALSE;
-            tty->radio_busy = FALSE;
-			continue;
-		}
+		// if((nfound = select(maxfd + 1, &set, (fd_set *)0, (fd_set *)0, tv.tv_sec || tv.tv_usec ? &tv : NULL)) < 0)
+		// {
+		// 	return NULL;
+		// }
+		// else if(nfound == 0)
+		// {
+		// 	tty->tty_busy = FALSE;
+		// 	tty->radio_busy = FALSE;
+		// 	continue;
+		// }
         //radio这部分是通过无线电进行通讯的，一定要把代码保留下来
         //接下来这个传感器有可能做无线的
+        #if 0
 		if(FD_ISSET(tty->radio_fd, &set))
 		{
             nfound--;
@@ -146,11 +158,12 @@ static void *__fmb_tty_server_thread(void *arg)
             }
             //radio处理到这里结束
         }
-		if(FD_ISSET(tty->tty_fd, &set))
+        #endif
+		// if(FD_ISSET(tty->tty_fd, &set))
 		{
-			nfound--;
-            tty->tty_busy = TRUE;
-			if((read_len = read(tty->tty_fd, tty_buf + len, FMB_TTY_BUF_LEN - len)) < 0)
+			// nfound--;
+			tty->tty_busy = TRUE;
+			if((HAL_OK == HAL_UART_Receive(&huart2, tty_buf + len, FMB_TTY_BUF_LEN - len, HAL_MAX_DELAY)) < 0)
 			{
 				fbs_err(MOD_SERIAL, "receive data error fd:%d", tty->tty_fd);
 				continue;
@@ -159,7 +172,6 @@ static void *__fmb_tty_server_thread(void *arg)
 			if(read_len == 0)
 			{
 				fbs_err(MOD_SERIAL, "disconnect fd:%d", tty->tty_fd);
-				close(tty->tty_fd);
 				tty->tty_fd = 0;
 				continue;
 			}
@@ -208,8 +220,6 @@ static void *__fmb_tty_server_thread(void *arg)
 }
 static bool_t __fmb_tty_start(fmb_tty_t *tty)
 {
-    uint16_t value = 0;
-
     //这里是打开串口的操作，fbs_serial_open最终返回一个fd
     if(fbs_cfg_get("modbus:tty_dev", CFG_PROTO) && fbs_cfg_get("modbus:tty_speed", CFG_PROTO) &&
         fbs_cfg_get("modbus:tty_data", CFG_PROTO) && fbs_cfg_get("modbus:tty_parity", CFG_PROTO) &&
@@ -241,6 +251,7 @@ static bool_t __fmb_tty_start(fmb_tty_t *tty)
 }
 static bool_t __fmb_radio_start(fmb_tty_t *tty)
 {
+	#if 0
     int fd;
     uint16_t chn;
 
@@ -271,6 +282,8 @@ static bool_t __fmb_radio_start(fmb_tty_t *tty)
     if(tty->radio_fd > 0)
         fbs_msg(MOD_MODBUS, "open %s ok! fd:%d", fbs_cfg_get("modbus:radio_dev", CFG_PROTO), tty->radio_fd);
     return tty->radio_fd > 0;
+		#endif
+		return 0;
 }
 fmb_tty_t *fmb_tty_init()
 {
@@ -292,6 +305,7 @@ fmb_tty_t *fmb_tty_init()
 }
 static void __fmb_tty_stop(fmb_tty_t *tty)
 {
+	#if 0
 	tty->running = FALSE;
 
 	if(tty->radio_fd)
@@ -306,6 +320,7 @@ static void __fmb_tty_stop(fmb_tty_t *tty)
         close(tty->gpio_fd);
     if(tty->thread)
         fbs_thread_join(tty->thread, NULL);
+	#endif
 }
 int fmb_tty_uninit(fmb_tty_t *tty)
 {
@@ -318,12 +333,10 @@ int fmb_tty_uninit(fmb_tty_t *tty)
 }
 int fmb_tty_send(fmb_tty_t *tty, fmb_transport_type_e type, void *data, size_t len, bool_t is_rsp)
 {
+		int value = 0;
     int i = 0, tty_speed = atoi(fbs_cfg_get("modbus:tty_speed", CFG_PROTO));
     uint8_t *buf;
-    size_t len1;
-	static uint8_t buf1[RADIO_MTU] = {0}, *ptr, *head;
-    uint16_t value;
-	uint16_t crc;
+		uint16_t crc;
     modbus_rtu_pack_t *pack;
 
     buf = fbs_new(uint8_t, len + 3);
@@ -351,20 +364,19 @@ int fmb_tty_send(fmb_tty_t *tty, fmb_transport_type_e type, void *data, size_t l
     {
         //先把DE、RE拉高
         value = 1;
-        if(ioctl(tty->gpio_fd, GPIO_CMD_SET_485, &value) < 0)
+				//@TODO: 
+        //if(HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET) != HAL_OK)
             fbs_err(MOD_MEDIA, "set si446x clear state", NULL);
         //串口发送数据
-        i = write(tty->tty_fd, buf, len);
-        fsync(tty->tty_fd);
+        i = HAL_UART_Transmit(&huart2, buf, len, HAL_MAX_DELAY);
 
-        //等待串口发送完毕，如果采用阻塞方式，则无需等待
-        usleep(1000000 / tty_speed * len * 10);
-        
         //DE、RE拉低，进入接收模式
         value = 0;
-        if(ioctl(tty->gpio_fd, GPIO_CMD_SET_485, &value) < 0)
+				//@TODO: 
+        //if(ioctl(tty->gpio_fd, GPIO_CMD_SET_485, &value) < 0)
             fbs_err(MOD_MEDIA, "set si446x clear state", NULL);
     }
+		#if 0
     else if(type == FMB_TRANSPORT_RADIO)
     {
         ptr = head = buf;
@@ -396,6 +408,7 @@ int fmb_tty_send(fmb_tty_t *tty, fmb_transport_type_e type, void *data, size_t l
             tty->total_tx_packets++;
         }
     }
+		#endif
     fbs_free(buf);
     return i;
 }
@@ -478,7 +491,8 @@ int fmb_tty_set_stop(fmb_tty_t *tty, int stop)
 }
 int fmb_tty_set_chn(fmb_tty_t *tty, uint16_t chn)
 {
-    int ret;
+	    int ret = 0;
+	#if 0
     char buf[16];
 
     if(chn < 0 || chn > 63)
@@ -490,9 +504,10 @@ int fmb_tty_set_chn(fmb_tty_t *tty, uint16_t chn)
         return ret;
     if(ioctl(tty->radio_fd, SI446X_CMD_SET_CHANNEL, &chn) < 0)
         fbs_err(MOD_MEDIA, "set si446x set channel", NULL);
-    return ret;
+  #endif
+	return ret;
 }
-__suseconds_t fmb_tty_get_interval()
+uint32_t fmb_tty_get_interval()
 {
     return 1000000 / atoi(fbs_cfg_get("modbus:tty_speed", CFG_PROTO)) * 
         (1 + atoi(fbs_cfg_get("modbus:tty_data", CFG_PROTO)) + atoi(fbs_cfg_get("modbus:tty_stop", CFG_PROTO))) * 4;

@@ -1,10 +1,11 @@
 #ifndef FMB_TCP
 #define FMB_TCP
-#include "f2f_modbus/f2f_modbus.h"
+#include "f2f_modbus.h"
 
 #define MAX_TCP_FD  20
 #define TCP_BUF_LEN		65535
 
+#if 0
 struct modbus_tcp_pack
 {
 	unsigned short transid	:16;
@@ -19,7 +20,7 @@ struct fmb_tcp
     bool_t binded;
 	int fd;
 	
-	pthread_t thread;
+	osThreadId_t thread;
 	int 				fds[MAX_TCP_FD];
 	char 				buf[MAX_TCP_FD][TCP_BUF_LEN];
 	size_t				data_len[MAX_TCP_FD];
@@ -51,6 +52,7 @@ extern "C" {
 	int fmb_tcp_send(fmb_tcp_t *tcp, int fd, void *data, size_t len);
 	int fmb_tcp_set_recved_cb(fmb_tcp_t *tcp, int (*cb)(void *tcp, fmb_transport_type_e trans, int fd, void *data, size_t len, bool_t is_broadcast, void *user_data), void *user_data);
 
+#endif
 #ifdef __cplusplus
 }
 #endif

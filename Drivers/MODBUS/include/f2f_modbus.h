@@ -7,26 +7,27 @@
 #include <stdarg.h>
 #include <string.h>
 #include <stddef.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <pthread.h>
+// #include <fcntl.h>
+// #include <errno.h>
+// #include <pthread.h>
 #include <math.h>
-#include <unistd.h>
-#include <signal.h>
+// #include <unistd.h>
+// #include <signal.h>
 #include <time.h>
-#ifndef WIN32
+#ifdef WIN32
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <sys/poll.h>
 #endif
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
+#include "cmsis_os.h"
+// #include <sys/types.h>
+// #include <sys/stat.h>
+// #include <sys/time.h>
+// #include <sys/ioctl.h>
+// #include <net/if.h>
+// #include <arpa/inet.h>
+// #include <netinet/in.h>
+// #include <netinet/tcp.h>
 
 typedef enum
 {
@@ -88,6 +89,9 @@ typedef enum
 #define MODBUS_REG_TTY_DEV_OFFSET 0x140
 #define MODBUS_REG_SLAVEID_OFFSET 0x180
 
+#define MAX_MODBUS_PARAM_LENS 64
+
+#define FD_MODBUS_USART 5
 
 #define	fbs_log(level, module, fmt, args...)	_fbs_log(level, module, __FILE__, __LINE__, fmt, args)
 #define	fbs_crit(module, fmt, args1...)			fbs_log(LOG_CRIT, module, fmt, args1)
@@ -152,11 +156,17 @@ typedef enum fmb_cb_type				fmb_cb_type_e;
 const char *fbs_cfg_get(const char *key, fbs_cfg_type_e type);
 int fbs_cfg_set(const char *key, const char *value, fbs_cfg_type_e type);
 int fbs_cfg_save(fbs_cfg_type_e type);
-int fbs_rand();
-uint32_t fbs_uid_get();
+int fbs_rand(void);
+uint32_t fbs_uid_get(void);
 void fbs_time_sync_pts(uint64_t pts);
 int fbs_serial_open(const char *dev, int speed, int databits, char parity, int stopbits);
-pthread_t fbs_thread_create(void *(*func)(void *), void *arg, const char *name);
+osThreadId_t fbs_thread_create(void *(*func)(void *), void *arg, const char *name);
+void _fbs_log(fbs_log_level level, fbs_log_module module, const char *file, int line, char *fmt, ...);
+
+uint32_t ntohl(uint32_t net_num);
+uint32_t htonl(uint32_t host_num);
+uint16_t ntohs(uint16_t net_num);
+uint16_t htons(uint16_t host_num);
 
 float swap_float_endian(float data); 
 uint64_t htonll(uint64_t val);
@@ -165,6 +175,6 @@ uint64_t ntohll(uint64_t val);
 #ifdef FMB_ENABLE_TCP
 #include "f2f_modbus/fmb_tcp.h"
 #endif
-#include "f2f_modbus/fmb_tty.h"
-#include "f2f_modbus/fmb_core.h"
+#include "fmb_tty.h"
+#include "fmb_core.h"
 #endif

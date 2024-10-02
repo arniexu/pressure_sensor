@@ -1,12 +1,11 @@
+#include "fmb_core.h"
+#include "fmb_tty.h"
+#include "f2f_modbus.h"
+#include "modbus.h"
 #include "main.h"
 
 bool_t __loop = TRUE;
 
-static void __sig_handler(int sig)
-{
-	printf("signal term happened!\n");
-	__loop = FALSE;
-}
 int hisi_get_pipe_data(int chn, void *buf)
 {
 	if(chn != 0)
@@ -25,7 +24,7 @@ int hisi_get_pipe_data(int chn, void *buf)
 }
 void hisi_get_manage_data(void *buf)
 {
-    fmb_manage_t *m;
+	fmb_manage_t *m = NULL;
 	if(buf == NULL)
 		return;
 
@@ -34,16 +33,15 @@ void hisi_get_manage_data(void *buf)
 	m = (fmb_manage_t*)buf;
 	m->dev_uniqueid = htonl(fbs_uid_get());
 
-	m->dev_type = 3;
-	m->dev_type = htons(2);
+	m->dev_type = htons(3);
 	
-	HI_MPI_SYS_GetCurPTS(&m->pts);	//get current timestamp of stm32
+	m->pts = hisi_get_curr_pts();
 	m->pts = htonll(m->pts);
 
-	m->out_data_type = (uint16_t)hisi_get_out_data_type();
+	m->out_data_type = (uint16_t)atoi(fbs_cfg_get("modbus:out_data_type", CFG_PROTO));
 	m->out_data_type = htons(m->out_data_type);
 	
-	m->coefficient = hisi_get_coefficient();
+	m->coefficient = atof(fbs_cfg_get("modbus:coefficient", CFG_PROTO));
 	m->coefficient = swap_float_endian(m->coefficient);
 
 	m->slaveid = (uint16_t)atoi(fbs_cfg_get("modbus:slaveid", CFG_PROTO));
@@ -64,64 +62,70 @@ void hisi_get_manage_data(void *buf)
 	m->radio_chn = (uint16_t)atoi(fbs_cfg_get("modbus:radio_chn", CFG_PROTO));
 	m->radio_chn = htons(m->radio_chn);
 }
+
+int hisi_set_out_data_type(fmd_filter_pipe_data_type_e type)
+{
+    char buf[16];
+
+    sprintf(buf, "%d", (int)type);
+    return fbs_cfg_set("modbus:out_data_type", buf, CFG_PROTO);
+}
+int hisi_set_coefficient(float coefficient)
+{
+    char buf[16];
+
+    sprintf(buf, "%f", coefficient);
+    return fbs_cfg_set("modbus:coefficient", buf, CFG_PROTO);
+}
+uint64_t hisi_get_curr_pts()
+{
+    //返回当前us单位的时间戳，务必实现
+    return 0;
+}
+
 int fmb_cb(fmb_core_t *c, enum fmb_cb_type cb_type, void *buf, int int1, int int2, float f1, float f2)
 {
-    fmb_manage_t *m;
 	switch(cb_type)
 	{
 		case FMB_GET_DATA:
 			return hisi_get_pipe_data(int1, buf);
-			break;
 		case FMB_GET_MANAGE:
 			hisi_get_manage_data(buf);
 			break;
-		//设置数据的输出类型，也就是输出原始数据还是乘以系数
+			//设置数据的输出类型，也就是输出原始数据还是乘以系数
 		case FMB_SET_OUT_DATA_TYPE:
 			printf("FMB_SET_OUT_DATA_TYPE to %d\n", int1);
 			return hisi_set_out_data_type((fmd_filter_pipe_data_type_e)int1);
-			break;
-		//设置系数
+			//设置系数
 		case FMB_SET_COEFFICIENT:
 			printf("FMB_SET_COEFFICIENT to %f\n", f1);
 			return hisi_set_coefficient(f1);
-			break;
 		case FMB_SET_SLAVEID:
 			printf("FMB_SET_SLAVEID to %d\n", int1);
 			return fmb_core_set_slaveid((uint8_t)int1);
-			break;
 		case FMB_SET_TTY_SPEED:
 			printf("FMB_SET_TTY_SPEED to %d\n", int1);
 			return fmb_core_set_tty_speed(c, int1);
-			break;
 		case FMB_SET_TTY_DATA:
 			printf("FMB_SET_TTY_DATA to %d\n", int1);
 			return fmb_core_set_tty_data(c, int1);
-			break;
 		case FMB_SET_TTY_PARITY:
 			printf("FMB_SET_TTY_PARITY to %c\n", (char)int1);
 			return fmb_core_set_tty_parity(c, (char)int1);
-			break;
 		case FMB_SET_TTY_STOP:
 			printf("FMB_SET_TTY_STOP to %d\n", int1);
 			return fmb_core_set_tty_stop(c, int1);
-			break;
 		case FMB_SET_RADIO_CHN:
 			printf("FMB_SET_RADIO_CHN to %d\n", int1);
 			return fmb_core_set_radio_chn(c, int1);
-			break;
 		default:
 			break;
 	}
 	return FBS_SUCC;
 }
-int main(int argc, char *argv[])
+int modbus(int argc, char *argv[])
 {
-	int ret;
 	fmb_core_t *mb;
-
-	// signal(SIGTERM, __sig_handler);
-	// signal(SIGINT, __sig_handler);
-	// signal(SIGPIPE, SIG_IGN);
 
 	//这里调用fmb库的初始化
 	mb = fmb_core_init();
@@ -135,9 +139,9 @@ int main(int argc, char *argv[])
 
 	while(__loop)
 	{
-		usleep(2000);
+		HAL_Delay(2);
 	}
 
 	fmb_core_uninit(mb);
-    exit(0);
+  exit(0);
 }

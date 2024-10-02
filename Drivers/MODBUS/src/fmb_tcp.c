@@ -1,4 +1,4 @@
-#include "f2f_modbus/fmb_tcp.h"
+#include "fmb_tcp.h"
 
 // static void *__fmb_tcp_data_new(uint32_t data_size, unsigned short header_size, unsigned int *in_use)
 // {
@@ -16,6 +16,7 @@
 
 // 	return (void*)d;
 // }
+#if 0
 fmb_tcp_t *fmb_tcp_init()
 {
     int val;
@@ -336,3 +337,4 @@ int fmb_tcp_set_recved_cb(fmb_tcp_t *tcp, int (*cb)(void *tcp, fmb_transport_typ
     tcp->user_data = user_data;
     return FBS_SUCC;
 }
+#endif

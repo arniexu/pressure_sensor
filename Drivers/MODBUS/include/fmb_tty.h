@@ -1,6 +1,6 @@
 #ifndef FMB_TTY
 #define FMB_TTY
-#include "f2f_modbus/f2f_modbus.h"
+#include "f2f_modbus.h"
 
 #define FMB_TTY_BUF_LEN		1024
 #define SI446X_CMD_CLEAR_STATE		0x10
@@ -36,7 +36,7 @@ struct fmb_tty
 	uint8_t rxbuf[RADIO_MAX_PACKET];
 	uint8_t *rx_wptr;
 	uint16_t rxlen;
-	pthread_t thread;
+	osThreadId_t thread;
 	int (*cb)(void *tty, fmb_transport_type_e trans, int fd, void *data, size_t len, bool_t is_broadcast, void *user_data);
 	void *user_data;
 };
@@ -45,7 +45,7 @@ struct fmb_tty
 extern "C" {
 #endif
 
-	fmb_tty_t *fmb_tty_init();
+	fmb_tty_t *fmb_tty_init(void);
 	int fmb_tty_uninit(fmb_tty_t *tty);
 
 	int fmb_tty_send(fmb_tty_t *tty, fmb_transport_type_e type, void *data, size_t len, bool_t is_rsp);
@@ -57,7 +57,7 @@ extern "C" {
 	int fmb_tty_set_stop(fmb_tty_t *tty, int stop);
 	int fmb_tty_set_chn(fmb_tty_t *tty, uint16_t chn);
 
-	__suseconds_t fmb_tty_get_interval();
+	uint32_t fmb_tty_get_interval(void);
 	bool_t fmb_tty_is_busy(fmb_tty_t *tty);
 
 #ifdef __cplusplus

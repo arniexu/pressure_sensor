@@ -1,6 +1,6 @@
 #ifndef FMB_CORE
 #define FMB_CORE
-#include "f2f_modbus/f2f_modbus.h"
+#include "f2f_modbus.h"
 
 enum fmb_cb_type
 {
@@ -76,7 +76,7 @@ struct fmb_core
 	bool_t pp_send;
 	fmb_transport_type_e pp_trans_type;
 	int pp_fd;
-	pthread_t private_proto_thread;
+	osThreadId_t private_proto_thread;
 };
 
 #ifdef __cplusplus
@@ -84,7 +84,7 @@ extern "C" {
 #endif
 
 
-	fmb_core_t *fmb_core_init();
+	fmb_core_t *fmb_core_init(void);
 	int fmb_core_uninit(fmb_core_t *c);
 
 	int fmb_core_recved(void *trans, fmb_transport_type_e trans_type, int fd, void *data, size_t len, bool_t is_broadcast, void *user_data);
