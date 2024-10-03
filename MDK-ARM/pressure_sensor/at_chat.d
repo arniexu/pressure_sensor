@@ -1,0 +1,9 @@
+pressure_sensor\at_chat.o: ..\Middlewares\Third_Party\ATCommand\src\at_chat.c
+pressure_sensor\at_chat.o: ..\Middlewares\Third_Party\ATCommand\include\at_chat.h
+pressure_sensor\at_chat.o: ..\Middlewares\Third_Party\ATCommand\include\at_port.h
+pressure_sensor\at_chat.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdbool.h
+pressure_sensor\at_chat.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdarg.h
+pressure_sensor\at_chat.o: ..\Middlewares\Third_Party\ATCommand\include\linux_list.h
+pressure_sensor\at_chat.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stddef.h
+pressure_sensor\at_chat.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
+pressure_sensor\at_chat.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h

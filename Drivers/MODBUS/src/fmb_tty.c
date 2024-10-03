@@ -2,13 +2,10 @@
 #include "main.h"
 
 extern RNG_HandleTypeDef hrng;
-
 extern SPI_HandleTypeDef hspi1;
-
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
-
 
 static uint16_t calcrc(uint8_t *buf, int len)
 {

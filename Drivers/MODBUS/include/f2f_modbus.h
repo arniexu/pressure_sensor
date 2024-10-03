@@ -160,7 +160,7 @@ int fbs_rand(void);
 uint32_t fbs_uid_get(void);
 void fbs_time_sync_pts(uint64_t pts);
 int fbs_serial_open(const char *dev, int speed, int databits, char parity, int stopbits);
-osThreadId_t fbs_thread_create(void *(*func)(void *), void *arg, const char *name);
+osThreadId_t fbs_thread_create(osThreadFunc_t func, void *arg, const char *name);
 void _fbs_log(fbs_log_level level, fbs_log_module module, const char *file, int line, char *fmt, ...);
 
 uint32_t ntohl(uint32_t net_num);

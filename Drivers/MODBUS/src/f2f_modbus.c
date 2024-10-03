@@ -2,13 +2,10 @@
 #include "main.h"
 
 extern RNG_HandleTypeDef hrng;
-
 extern SPI_HandleTypeDef hspi1;
-
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
-
 
 // leave un-implemented
 void _fbs_log(fbs_log_level level, fbs_log_module module, const char *file, int line, char *fmt, ...)
@@ -93,7 +90,6 @@ int fbs_cfg_set(const char *key, const char *value, fbs_cfg_type_e type)
     //要判断需要存储的key是不是符合要求的，如果找不到相应的key，应当返回FBS_EXCEED_PARAM
     //按照我原来的逻辑，set只是在内存中临时存储一下，掉电不会保存。如果想永久存储，应该先set再屌用fbs_cfg_save
     //这里你们酌情处理
-    HAL_StatusTypeDef status = HAL_OK;
     if (!key || !value)
         return FBS_EXCEED_PARAM;
     if (strcmp(key, "modbus:tty_dev") == 0)
@@ -122,8 +118,6 @@ int fbs_cfg_set(const char *key, const char *value, fbs_cfg_type_e type)
     }
     else
         return FBS_EXCEED_PARAM;
-
-    return FBS_SUCC;
 }
 
 // 始终返回成功
@@ -176,7 +170,7 @@ int fbs_serial_open(const char *dev, int speed, int databits, char parity, int s
 }
 
 // 返回值类型改成freeRTOS的线程句柄
-osThreadId_t fbs_thread_create(void *(*func)(void *), void *arg, const char *name)
+osThreadId_t fbs_thread_create(osThreadFunc_t func, void *arg, const char *name)
 {
     //创建线程，务必实现
     return osThreadNew(func, NULL, arg);

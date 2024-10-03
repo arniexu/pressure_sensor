@@ -339,7 +339,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32L431xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32L4xx_HAL_Driver/Inc;../Drivers/STM32L4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32L4xx/Include;../Drivers/CMSIS/Include;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2;../Drivers/MODBUS/include</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32L4xx_HAL_Driver/Inc;../Drivers/STM32L4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32L4xx/Include;../Drivers/CMSIS/Include;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2;../Drivers/MODBUS/include;..\Middlewares\Third_Party\ATCommand\include;..\Middlewares\Third_Party\CircularBuffer</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -1481,7 +1481,7 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>Middleware/modbus</GroupName>
+          <GroupName>Middleware/MODBUS</GroupName>
           <Files>
             <File>
               <FileName>fmb_core.c</FileName>
@@ -1507,6 +1507,34 @@
               <FileName>modbus.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Drivers\MODBUS\src\modbus.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Drivers/ADS1220</GroupName>
+        </Group>
+        <Group>
+          <GroupName>Application/CircularBuffer</GroupName>
+          <Files>
+            <File>
+              <FileName>circular_buffer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Middlewares\Third_Party\CircularBuffer\circular_buffer.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Application/ATCommand</GroupName>
+          <Files>
+            <File>
+              <FileName>at_chat.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Middlewares\Third_Party\ATCommand\src\at_chat.c</FilePath>
+            </File>
+            <File>
+              <FileName>at_port.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Middlewares\Third_Party\ATCommand\src\at_port.c</FilePath>
             </File>
           </Files>
         </Group>

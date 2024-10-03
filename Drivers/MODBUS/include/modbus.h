@@ -4,7 +4,7 @@
 #include "f2f_modbus.h"
 
 extern bool_t __loop;
-uint64_t hisi_get_curr_pts();
+uint64_t hisi_get_curr_pts(void);
 
 
 #endif
