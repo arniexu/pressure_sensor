@@ -23,7 +23,16 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "ads1220.h"
+#include "stdio.h"
+#define PGA          1.0                 //增益倍数
+#define VREF         5                   //基准电压
+#define VFSR         VREF/PGA
+#define FULL_SCALE   8388607.0
 
+char OffsetVal[40] = {0}; 
+long double SumVal;
+signed long int s_Value;
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -33,7 +42,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -59,6 +67,42 @@ const osThreadAttr_t defaultTask_attributes = {
 };
 /* USER CODE BEGIN PV */
 
+void UartPrintString(char* s)
+{
+	unsigned char *t;
+	
+	t = (unsigned char*)s;
+	
+	while(*t)
+  {
+    HAL_UART_Transmit(&huart1, t++, 1, 0xFFFFFFFF);
+  }
+}
+
+/**********************************************************************
+* 名称 : convertToMilliV(int32_t i32data)
+* 功能 : ADC值转电压值函数
+* 输入 : ADC转换通道获取的数值
+* 输出 ：电压值，单位mv
+* 说明 : 无
+***********************************************************************/
+float convertToMilliV(int32_t i32data)   //ADC采集值转电压函数
+{
+    return (float)((i32data*VFSR*1000.0)/FULL_SCALE);
+}
+void adc_Sample(void)
+{
+//   ;
+//	//获取传感器返回的模拟电压值
+    s_Value=ADS1220_read_singleshot(&hspi1,GPIOC,GPIO_PIN_4,1000);
+//	s_Value = ADS1220_read_data(&hspi2);	//获取ADC转换通道的值
+  	SumVal = convertToMilliV(s_Value);
+  	sprintf(OffsetVal,"%0.20lf",SumVal);  //数字转字符串
+  	UartPrintString(OffsetVal);
+	  UartPrintString("hello word\n");
+  	HAL_Delay(50);
+//	
+}
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -88,6 +132,9 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+	  ADS1220_regs ADS1220_default_regs =
+  { 0x80, 0x04, 0x40, 0x00 };
+
 
   /* USER CODE END 1 */
 
@@ -115,7 +162,7 @@ int main(void)
   MX_USART3_UART_Init();
   MX_RNG_Init();
   /* USER CODE BEGIN 2 */
-
+   ADS1220_init(&hspi1,&ADS1220_default_regs);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -159,7 +206,7 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
+		  adc_Sample();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -432,6 +479,7 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
+		adc_Sample();
     osDelay(1);
   }
   /* USER CODE END 5 */

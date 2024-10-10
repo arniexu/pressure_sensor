@@ -1512,6 +1512,13 @@
         </Group>
         <Group>
           <GroupName>Drivers/ADS1220</GroupName>
+          <Files>
+            <File>
+              <FileName>ADS1220.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Drivers\ADS1220\ADS1220.h</FilePath>
+            </File>
+          </Files>
         </Group>
         <Group>
           <GroupName>Application/CircularBuffer</GroupName>
@@ -1537,6 +1544,9 @@
               <FilePath>..\Middlewares\Third_Party\ATCommand\src\at_port.c</FilePath>
             </File>
           </Files>
+        </Group>
+        <Group>
+          <GroupName>Application/SerialConsole</GroupName>
         </Group>
         <Group>
           <GroupName>::CMSIS</GroupName>
